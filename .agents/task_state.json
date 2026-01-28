@@ -12,7 +12,7 @@
       "category": "Core Similarity - Foundation",
       "description": "Create BM25FSimilarity class structure with field weight configuration, per-field parameter storage (k1, b), proper validation, constructors, and Apache license headers. Located in lucene/core/src/java/org/apache/lucene/search/similarities/",
       "priority": 1,
-      "status": "pending",
+      "status": "completed",
       "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
       "steps": [
         "Create BM25FSimilarity.java in core/src/java/org/apache/lucene/search/similarities/",
