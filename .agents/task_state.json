@@ -30,7 +30,7 @@
       "category": "Core Similarity - Scoring",
       "description": "Implement BM25F scoring algorithm including field-specific term frequency normalization, multi-field score aggregation, and integration with Lucene's Similarity API. Override required methods for score computation.",
       "priority": 2,
-      "status": "pending",
+      "status": "completed",
       "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
       "steps": [
         "Override computeNorm() to handle per-field length normalization",

@@ -16,12 +16,15 @@
  */
 package org.apache.lucene.search.similarities;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.TermStatistics;
+import org.apache.lucene.util.SmallFloat;
 
 /**
  * BM25F Similarity implementation for multi-field scoring.
@@ -355,13 +358,239 @@ public class BM25FSimilarity extends Similarity {
     return defaultB;
   }
 
+  /**
+   * Computes the IDF (inverse document frequency) for a single term.
+   *
+   * <p>Implementation follows BM25's IDF formula: log(1 + (N - n + 0.5) / (n + 0.5))
+   *
+   * @param docFreq document frequency (number of documents containing the term)
+   * @param docCount total number of documents in the collection
+   * @return the IDF value
+   */
+  protected float idf(long docFreq, long docCount) {
+    return (float) Math.log(1 + (docCount - docFreq + 0.5D) / (docFreq + 0.5D));
+  }
+
+  /**
+   * Computes the average field length for a given field.
+   *
+   * @param collectionStats collection-level statistics for the field
+   * @return average field length
+   */
+  protected float avgFieldLength(CollectionStatistics collectionStats) {
+    return (float) (collectionStats.sumTotalTermFreq() / (double) collectionStats.docCount());
+  }
+
+  /**
+   * Computes a score factor for a single term and returns an explanation.
+   *
+   * @param collectionStats collection-level statistics
+   * @param termStats term-level statistics for the term
+   * @return an Explanation object with the IDF score factor
+   */
+  public Explanation idfExplain(CollectionStatistics collectionStats, TermStatistics termStats) {
+    final long df = termStats.docFreq();
+    final long docCount = collectionStats.docCount();
+    final float idf = idf(df, docCount);
+    return Explanation.match(
+        idf,
+        "idf, computed as log(1 + (N - n + 0.5) / (n + 0.5)) from:",
+        Explanation.match(df, "n, number of documents containing term"),
+        Explanation.match(docCount, "N, total number of documents with field"));
+  }
+
+  /**
+   * Computes a score factor for a phrase (multiple terms).
+   *
+   * <p>The default implementation sums the IDF factor for each term in the phrase.
+   *
+   * @param collectionStats collection-level statistics
+   * @param termStats term-level statistics for the terms in the phrase
+   * @return an Explanation object with the IDF score factor for the phrase
+   */
+  public Explanation idfExplain(CollectionStatistics collectionStats, TermStatistics[] termStats) {
+    double idf = 0d; // sum into a double before casting to float
+    List<Explanation> details = new ArrayList<>();
+    for (final TermStatistics stat : termStats) {
+      Explanation idfExplain = idfExplain(collectionStats, stat);
+      details.add(idfExplain);
+      idf += idfExplain.getValue().floatValue();
+    }
+    return Explanation.match((float) idf, "idf, sum of:", details);
+  }
+
+  /** Cache of decoded bytes for length normalization. */
+  private static final float[] LENGTH_TABLE = new float[256];
+
+  static {
+    for (int i = 0; i < 256; i++) {
+      LENGTH_TABLE[i] = SmallFloat.byte4ToInt((byte) i);
+    }
+  }
+
   @Override
   public final SimScorer scorer(
       float boost, CollectionStatistics collectionStats, TermStatistics... termStats) {
-    // TODO: Implement in FEAT-002 - Core Similarity - Scoring
-    // This is a placeholder implementation that will be replaced with the full BM25F scoring logic
-    throw new UnsupportedOperationException(
-        "BM25FSimilarity scoring not yet implemented - see FEAT-002");
+    Explanation idf =
+        termStats.length == 1
+            ? idfExplain(collectionStats, termStats[0])
+            : idfExplain(collectionStats, termStats);
+    float avgdl = avgFieldLength(collectionStats);
+
+    // Get field-specific parameters
+    String fieldName = collectionStats.field();
+    float fieldWeight = getFieldWeight(fieldName);
+    float k1 = getFieldK1(fieldName);
+    float b = getFieldB(fieldName);
+
+    // Precompute normalization cache for this field
+    // cache[i] = 1 / (k1 * ((1 - b) + b * LENGTH_TABLE[i] / avgdl))
+    float[] cache = new float[256];
+    for (int i = 0; i < cache.length; i++) {
+      cache[i] = 1f / (k1 * ((1 - b) + b * LENGTH_TABLE[i] / avgdl));
+    }
+
+    return new BM25FSimScorer(boost, fieldWeight, k1, b, idf, avgdl, cache);
+  }
+
+  /**
+   * SimScorer for BM25F that computes document scores using field-specific BM25F parameters.
+   *
+   * <p>This scorer applies BM25F formula with field-specific k1, b parameters and field weights. The
+   * scoring formula is: score = weight * boost * idf * (freq / (freq + k1 * (1 - b + b * dl /
+   * avgdl)))
+   */
+  private class BM25FSimScorer extends SimScorer {
+    /** query boost */
+    private final float boost;
+
+    /** field weight (boost factor for this field) */
+    private final float fieldWeight;
+
+    /** k1 value for term frequency saturation */
+    private final float k1;
+
+    /** b value for length normalization impact */
+    private final float b;
+
+    /** BM25's idf */
+    private final Explanation idf;
+
+    /** The average document length for this field. */
+    private final float avgdl;
+
+    /** precomputed norm[256] with k1 * ((1 - b) + b * dl / avgdl) */
+    private final float[] cache;
+
+    /** Combined weight (fieldWeight * boost * idf) */
+    private final float weight;
+
+    BM25FSimScorer(
+        float boost,
+        float fieldWeight,
+        float k1,
+        float b,
+        Explanation idf,
+        float avgdl,
+        float[] cache) {
+      this.boost = boost;
+      this.fieldWeight = fieldWeight;
+      this.k1 = k1;
+      this.b = b;
+      this.idf = idf;
+      this.avgdl = avgdl;
+      this.cache = cache;
+      this.weight = fieldWeight * boost * idf.getValue().floatValue();
+    }
+
+    /**
+     * Computes the BM25F score for a given term frequency and field length normalization.
+     *
+     * <p>Uses the rewritten formula: weight - weight / (1 + freq * normInverse) for better
+     * monotonicity guarantees and performance.
+     *
+     * @param freq term frequency
+     * @param normInverse precomputed inverse normalization factor
+     * @return the BM25F score
+     */
+    private float doScore(float freq, float normInverse) {
+      // In order to guarantee monotonicity with both freq and norm without
+      // promoting to doubles, we rewrite freq / (freq + norm) to
+      // 1 - 1 / (1 + freq * 1/norm).
+      // freq * 1/norm is guaranteed to be monotonic for both freq and norm due
+      // to the fact that multiplication and division round to the nearest
+      // float. And then monotonicity is preserved through composition via
+      // x -> 1 + x and x -> 1 - 1/x.
+      // Finally we expand weight * (1 - 1 / (1 + freq * 1/norm)) to
+      // weight - weight / (1 + freq * 1/norm), which runs slightly faster.
+      return weight - weight / (1f + freq * normInverse);
+    }
+
+    @Override
+    public float score(float freq, long encodedNorm) {
+      float normInverse = cache[((byte) encodedNorm) & 0xFF];
+      return doScore(freq, normInverse);
+    }
+
+    @Override
+    public Explanation explain(Explanation freq, long encodedNorm) {
+      List<Explanation> subs = new ArrayList<>(explainConstantFactors());
+      Explanation tfExpl = explainTF(freq, encodedNorm);
+      subs.add(tfExpl);
+      float normInverse = cache[((byte) encodedNorm) & 0xFF];
+      // not using "product of" since the rewrite that we do in score()
+      // introduces a small rounding error that CheckHits complains about
+      return Explanation.match(
+          weight - weight / (1f + freq.getValue().floatValue() * normInverse),
+          "score(freq=" + freq.getValue() + "), computed as fieldWeight * boost * idf * tf from:",
+          subs);
+    }
+
+    /**
+     * Explains the term frequency component of the BM25F score.
+     *
+     * @param freq term frequency explanation
+     * @param norm encoded norm value
+     * @return explanation for the TF component
+     */
+    private Explanation explainTF(Explanation freq, long norm) {
+      List<Explanation> subs = new ArrayList<>();
+      subs.add(freq);
+      subs.add(Explanation.match(k1, "k1, term saturation parameter"));
+      float doclen = LENGTH_TABLE[((byte) norm) & 0xff];
+      subs.add(Explanation.match(b, "b, length normalization parameter"));
+      if ((norm & 0xFF) > 39) {
+        subs.add(Explanation.match(doclen, "dl, length of field (approximate)"));
+      } else {
+        subs.add(Explanation.match(doclen, "dl, length of field"));
+      }
+      subs.add(Explanation.match(avgdl, "avgdl, average length of field"));
+      float normInverse = 1f / (k1 * ((1 - b) + b * doclen / avgdl));
+      return Explanation.match(
+          1f - 1f / (1 + freq.getValue().floatValue() * normInverse),
+          "tf, computed as freq / (freq + k1 * (1 - b + b * dl / avgdl)) from:",
+          subs);
+    }
+
+    /**
+     * Returns explanations for constant factors (field weight, boost, idf).
+     *
+     * @return list of constant factor explanations
+     */
+    private List<Explanation> explainConstantFactors() {
+      List<Explanation> subs = new ArrayList<>();
+      // field weight
+      if (fieldWeight != 1.0f) {
+        subs.add(Explanation.match(fieldWeight, "fieldWeight"));
+      }
+      // query boost
+      if (boost != 1.0f) {
+        subs.add(Explanation.match(boost, "boost"));
+      }
+      // idf
+      subs.add(idf);
+      return subs;
+    }
   }
 
   @Override
