@@ -48,7 +48,7 @@
       "category": "Core Similarity - Testing",
       "description": "Comprehensive unit and integration tests for BM25FSimilarity including parameter validation, scoring calculations, comparison with standard BM25, and integration with IndexSearcher.",
       "priority": 3,
-      "status": "pending",
+      "status": "completed",
       "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
       "steps": [
         "Create TestBM25FSimilarity.java in core/src/test/org/apache/lucene/search/similarities/",
