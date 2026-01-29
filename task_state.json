@@ -12,7 +12,7 @@
       "category": "Core Parser Implementation",
       "description": "Create BM25FQueryParser class - a multi-field query parser that produces CombinedFieldQuery instances for BM25F scoring",
       "priority": 1,
-      "status": "pending",
+      "status": "completed",
       "repository": "lucene",
       "steps": [
         "Create package org.apache.lucene.queryparser.bm25f with package-info.java",
