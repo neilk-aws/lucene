@@ -1,0 +1,51 @@
+{
+  "task_id": "task-20260129-2144",
+  "task_description": "Implement a BM25F multi-field query parser for Apache Lucene.",
+  "status": "completed",
+  "settings": {
+    "target_branch": "main",
+    "create_pr": true
+  },
+  "features": [
+    {
+      "id": "FEAT-001",
+      "category": "Core Parser Implementation",
+      "description": "Create BM25FQueryParser class",
+      "priority": 1,
+      "status": "completed",
+      "repository": "lucene"
+    },
+    {
+      "id": "FEAT-002",
+      "category": "Query Operators Support",
+      "description": "Implement +/- operators and phrase queries",
+      "priority": 2,
+      "status": "completed",
+      "repository": "lucene"
+    },
+    {
+      "id": "FEAT-003",
+      "category": "Module Integration",
+      "description": "Export bm25f package in module-info.java",
+      "priority": 3,
+      "status": "completed",
+      "repository": "lucene"
+    },
+    {
+      "id": "FEAT-004",
+      "category": "Unit Tests",
+      "description": "Create TestBM25FQueryParser",
+      "priority": 4,
+      "status": "completed",
+      "repository": "lucene"
+    },
+    {
+      "id": "FEAT-005",
+      "category": "Documentation",
+      "description": "Javadoc and usage examples",
+      "priority": 5,
+      "status": "completed",
+      "repository": "lucene"
+    }
+  ]
+}
