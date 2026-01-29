@@ -89,7 +89,7 @@
       "category": "Query Parser - Testing & Documentation",
       "description": "Comprehensive tests for BM25FMultiFieldQueryParser including query parsing validation, integration with BM25FSimilarity, end-to-end indexing and searching tests, and detailed Javadoc with examples.",
       "priority": 5,
-      "status": "in_progress",
+      "status": "completed",
       "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
       "steps": [
         "Create TestBM25FMultiFieldQueryParser.java in queryparser/src/test/org/apache/lucene/queryparser/classic/",
