@@ -70,7 +70,7 @@
       "category": "Query Parser - Implementation",
       "description": "Implement BM25FMultiFieldQueryParser extending MultiFieldQueryParser with integration to BM25FSimilarity, field weight configuration support, and standard query syntax support across multiple fields.",
       "priority": 4,
-      "status": "pending",
+      "status": "completed",
       "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
       "steps": [
         "Create BM25FMultiFieldQueryParser.java in queryparser/src/java/org/apache/lucene/queryparser/classic/",
