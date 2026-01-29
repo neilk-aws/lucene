@@ -1,0 +1,110 @@
+{
+  "task_id": "task-20250119-bm25f",
+  "task_description": "Implement BM25F multi-field query parser for Apache Lucene with per-field boost weights, per-field k1/b parameters, combined multi-field scoring, and field-specific term frequency normalization. Includes comprehensive unit tests and follows Lucene conventions.",
+  "status": "in_progress",
+  "settings": {
+    "target_branch": "main",
+    "create_pr": true
+  },
+  "features": [
+    {
+      "id": "FEAT-001",
+      "category": "Core Similarity - Foundation",
+      "description": "Create BM25FSimilarity class structure with field weight configuration, per-field parameter storage (k1, b), proper validation, constructors, and Apache license headers. Located in lucene/core/src/java/org/apache/lucene/search/similarities/",
+      "priority": 1,
+      "status": "completed",
+      "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
+      "steps": [
+        "Create BM25FSimilarity.java in core/src/java/org/apache/lucene/search/similarities/",
+        "Add Apache license header following Lucene conventions",
+        "Implement class extending Similarity with field-specific configuration",
+        "Add data structures to store per-field weights (Map<String, Float>)",
+        "Add data structures to store per-field k1 and b parameters (Map<String, Float>)",
+        "Implement constructors with validation for parameter ranges",
+        "Add getters for field weights and parameters",
+        "Add comprehensive Javadoc explaining BM25F algorithm and usage"
+      ]
+    },
+    {
+      "id": "FEAT-002",
+      "category": "Core Similarity - Scoring",
+      "description": "Implement BM25F scoring algorithm including field-specific term frequency normalization, multi-field score aggregation, and integration with Lucene's Similarity API. Override required methods for score computation.",
+      "priority": 2,
+      "status": "completed",
+      "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
+      "steps": [
+        "Override computeNorm() to handle per-field length normalization",
+        "Override scorer() to return BM25F-specific SimScorer",
+        "Implement BM25FSimScorer inner class extending SimScorer",
+        "Implement score() method with BM25F formula: aggregating weighted term frequencies across fields",
+        "Implement explain() method for score transparency",
+        "Handle IDF calculation using Lucene's CollectionStatistics",
+        "Implement field-specific term frequency normalization using per-field b parameters",
+        "Add proper handling of edge cases (missing fields, zero frequencies)"
+      ]
+    },
+    {
+      "id": "FEAT-003",
+      "category": "Core Similarity - Testing",
+      "description": "Comprehensive unit and integration tests for BM25FSimilarity including parameter validation, scoring calculations, comparison with standard BM25, and integration with IndexSearcher.",
+      "priority": 3,
+      "status": "completed",
+      "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
+      "steps": [
+        "Create TestBM25FSimilarity.java in core/src/test/org/apache/lucene/search/similarities/",
+        "Add Apache license header",
+        "Extend LuceneTestCase for proper test framework integration",
+        "Test constructor parameter validation (invalid k1, b values)",
+        "Test field weight configuration and retrieval",
+        "Test per-field parameter configuration",
+        "Test scoring with single field (should match BM25 with same parameters)",
+        "Test scoring with multiple fields and different weights",
+        "Test scoring with different per-field b parameters",
+        "Test explain() output for score debugging",
+        "Create integration test with RAMDirectory, IndexWriter, and IndexSearcher",
+        "Test edge cases: empty fields, missing fields, zero term frequencies"
+      ]
+    },
+    {
+      "id": "FEAT-004",
+      "category": "Query Parser - Implementation",
+      "description": "Implement BM25FMultiFieldQueryParser extending MultiFieldQueryParser with integration to BM25FSimilarity, field weight configuration support, and standard query syntax support across multiple fields.",
+      "priority": 4,
+      "status": "completed",
+      "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
+      "steps": [
+        "Create BM25FMultiFieldQueryParser.java in queryparser/src/java/org/apache/lucene/queryparser/classic/",
+        "Add Apache license header",
+        "Extend MultiFieldQueryParser to inherit multi-field query parsing",
+        "Add field to store BM25FSimilarity configuration",
+        "Implement constructors accepting field names, analyzer, and BM25FSimilarity parameters",
+        "Override getFieldQuery() to ensure proper field handling",
+        "Add method to configure/retrieve BM25FSimilarity instance",
+        "Ensure compatibility with existing MultiFieldQueryParser features (boosts, slop, etc.)",
+        "Add comprehensive Javadoc with usage examples"
+      ]
+    },
+    {
+      "id": "FEAT-005",
+      "category": "Query Parser - Testing & Documentation",
+      "description": "Comprehensive tests for BM25FMultiFieldQueryParser including query parsing validation, integration with BM25FSimilarity, end-to-end indexing and searching tests, and detailed Javadoc with examples.",
+      "priority": 5,
+      "status": "completed",
+      "repository": "/local/home/neilkulk/workspace/AgentReset/src/BigWeaverProtoAgent/scratch/lucene",
+      "steps": [
+        "Create TestBM25FMultiFieldQueryParser.java in queryparser/src/test/org/apache/lucene/queryparser/classic/",
+        "Add Apache license header",
+        "Extend LuceneTestCase for test framework",
+        "Test basic query parsing across multiple fields",
+        "Test field weight application in queries",
+        "Test integration with BM25FSimilarity configuration",
+        "Test query syntax features: boolean operators, phrases, wildcards",
+        "Create end-to-end test: index documents, parse query, search with BM25F scoring",
+        "Test that results differ appropriately from standard BM25 when using field-specific parameters",
+        "Verify score explanations match expected BM25F calculations",
+        "Add code examples in Javadoc showing typical usage patterns",
+        "Document differences from standard MultiFieldQueryParser"
+      ]
+    }
+  ]
+}
