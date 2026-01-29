@@ -190,6 +190,15 @@ public class BM25FQueryParser extends QueryBuilder {
    * BooleanQuery} containing a {@link CombinedFieldQuery} for each term, combined using the default
    * operator.
    *
+   * <h3>Supported Query Syntax</h3>
+   *
+   * <ul>
+   *   <li><b>+term</b> - Required term (MUST match)
+   *   <li><b>-term</b> - Prohibited term (MUST NOT match)
+   *   <li><b>"phrase"</b> - Phrase query (exact sequence match across fields)
+   *   <li><b>*</b> - Match all documents
+   * </ul>
+   *
    * <p>Special cases:
    *
    * <ul>
@@ -210,27 +219,143 @@ public class BM25FQueryParser extends QueryBuilder {
       return MatchAllDocsQuery.INSTANCE;
     }
 
-    // Analyze the query text using the first field (for analyzer context)
-    // All fields should use the same analyzer for CombinedFieldQuery to work correctly
-    String firstField = fieldWeights.keySet().iterator().next();
-    List<BytesRef> terms = analyzeQueryText(firstField, queryText);
+    // Parse with operator support
+    return parseWithOperators(queryText);
+  }
 
-    if (terms.isEmpty()) {
+  /**
+   * Parses query text with support for operators (+, -, quotes).
+   *
+   * @param queryText the query text to parse
+   * @return the parsed query
+   */
+  private Query parseWithOperators(String queryText) {
+    List<Clause> clauses = new ArrayList<>();
+    StringBuilder currentToken = new StringBuilder();
+    BooleanClause.Occur currentOccur = defaultOperator;
+    boolean inQuotes = false;
+    boolean escaped = false;
+
+    for (int i = 0; i < queryText.length(); i++) {
+      char c = queryText.charAt(i);
+
+      if (escaped) {
+        currentToken.append(c);
+        escaped = false;
+        continue;
+      }
+
+      if (c == '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (c == '"') {
+        if (inQuotes) {
+          // End of quoted phrase
+          String phrase = currentToken.toString();
+          if (!phrase.isEmpty()) {
+            Query phraseQuery = createPhraseQuery(phrase, 0);
+            if (phraseQuery != null) {
+              clauses.add(new Clause(phraseQuery, currentOccur));
+            }
+          }
+          currentToken.setLength(0);
+          currentOccur = defaultOperator;
+          inQuotes = false;
+        } else {
+          // Start of quoted phrase - save any pending token first
+          if (currentToken.length() > 0) {
+            addTermClauses(currentToken.toString(), currentOccur, clauses);
+            currentToken.setLength(0);
+            currentOccur = defaultOperator;
+          }
+          inQuotes = true;
+        }
+        continue;
+      }
+
+      if (inQuotes) {
+        currentToken.append(c);
+        continue;
+      }
+
+      if (Character.isWhitespace(c)) {
+        if (currentToken.length() > 0) {
+          addTermClauses(currentToken.toString(), currentOccur, clauses);
+          currentToken.setLength(0);
+          currentOccur = defaultOperator;
+        }
+        continue;
+      }
+
+      if (c == '+' && currentToken.length() == 0) {
+        currentOccur = BooleanClause.Occur.MUST;
+        continue;
+      }
+
+      if (c == '-' && currentToken.length() == 0) {
+        currentOccur = BooleanClause.Occur.MUST_NOT;
+        continue;
+      }
+
+      currentToken.append(c);
+    }
+
+    // Handle any remaining token
+    if (currentToken.length() > 0) {
+      if (inQuotes) {
+        // Unclosed quote - treat as phrase anyway
+        Query phraseQuery = createPhraseQuery(currentToken.toString(), 0);
+        if (phraseQuery != null) {
+          clauses.add(new Clause(phraseQuery, currentOccur));
+        }
+      } else {
+        addTermClauses(currentToken.toString(), currentOccur, clauses);
+      }
+    }
+
+    if (clauses.isEmpty()) {
       return new MatchNoDocsQuery("empty query after analysis");
     }
 
-    if (terms.size() == 1) {
-      // Single term: return a CombinedFieldQuery
-      return createCombinedFieldQuery(terms.get(0));
+    if (clauses.size() == 1 && clauses.get(0).occur != BooleanClause.Occur.MUST_NOT) {
+      return clauses.get(0).query;
     }
 
-    // Multiple terms: create a BooleanQuery of CombinedFieldQueries
     BooleanQuery.Builder builder = new BooleanQuery.Builder();
-    for (BytesRef term : terms) {
-      Query termQuery = createCombinedFieldQuery(term);
-      builder.add(termQuery, defaultOperator);
+    for (Clause clause : clauses) {
+      builder.add(clause.query, clause.occur);
     }
     return builder.build();
+  }
+
+  /**
+   * Adds term clauses for the given text token.
+   *
+   * @param token the text token to analyze and add
+   * @param occur the occur type for the clauses
+   * @param clauses the list to add clauses to
+   */
+  private void addTermClauses(String token, BooleanClause.Occur occur, List<Clause> clauses) {
+    String firstField = fieldWeights.keySet().iterator().next();
+    List<BytesRef> terms = analyzeQueryText(firstField, token);
+
+    for (BytesRef term : terms) {
+      Query termQuery = createCombinedFieldQuery(term);
+      clauses.add(new Clause(termQuery, occur));
+    }
+  }
+
+  /** Internal helper class to hold a query and its occur type. */
+  private static class Clause {
+    final Query query;
+    final BooleanClause.Occur occur;
+
+    Clause(Query query, BooleanClause.Occur occur) {
+      this.query = query;
+      this.occur = occur;
+    }
   }
 
   /**
