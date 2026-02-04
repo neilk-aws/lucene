@@ -35,6 +35,14 @@
  *       graph
  *   <li>{@link org.apache.lucene.sandbox.neptune.HybridSearchResult} - Contains combined results
  *       from text and graph searches
+ *   <li>{@link org.apache.lucene.sandbox.neptune.NeptuneGraphQuery} - Lucene Query for executing
+ *       graph traversals
+ *   <li>{@link org.apache.lucene.sandbox.neptune.HybridTextGraphQuery} - Combined text + graph
+ *       hybrid query
+ *   <li>{@link org.apache.lucene.sandbox.neptune.ScoreCombinationStrategy} - Strategies for
+ *       combining text and graph scores
+ *   <li>{@link org.apache.lucene.sandbox.neptune.HybridSearchCollector} - Collector for hybrid
+ *       search results
  * </ul>
  *
  * @lucene.experimental
