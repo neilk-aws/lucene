@@ -29,6 +29,20 @@
  * queryparser that matches the syntax of this one, but is more modular, enabling substantial
  * customization to how a query is created.
  *
+ * <h2>Multi-Field Query Parsers</h2>
+ *
+ * <p>This package provides two multi-field query parsers:
+ *
+ * <ul>
+ *   <li>{@link org.apache.lucene.queryparser.classic.MultiFieldQueryParser} - Traditional multi-field
+ *       query parser that creates a BooleanQuery combining per-field queries.
+ *   <li>{@link org.apache.lucene.queryparser.classic.BM25FMultiFieldQueryParser} - BM25F-based
+ *       multi-field query parser that uses {@link org.apache.lucene.search.CombinedFieldQuery} for
+ *       more accurate BM25F scoring across multiple fields. This parser treats multiple fields as a
+ *       single combined field for scoring purposes, resulting in more accurate relevance scoring
+ *       for multi-field searches.
+ * </ul>
+ *
  * <h2>Query Parser Syntax</h2>
  *
  * <div id="minitoc-area">
