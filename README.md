@@ -64,3 +64,25 @@ contributing.
 - [Users Mailing List](https://lucene.apache.org/core/discussion.html#java-user-list-java-userluceneapacheorg)
 - [Developers Mailing List](https://lucene.apache.org/core/discussion.html#developer-lists)
 - IRC: `#lucene` and `#lucene-dev` on freenode.net
+
+---
+
+## A Sonnet for Lucene
+
+> Through endless fields of text, a lantern gleams,
+> Where words like scattered stars await their call.
+> Lucene, the keeper of a thousand dreams,
+> Brings order, light, and meaning unto all.
+>
+> Each document a world, each term a key,
+> Inverted paths that lead to treasures lost.
+> With segments merged in silent harmony,
+> No query left unanswered, none the cost.
+>
+> From simple phrase to Boolean's keen embrace,
+> Through filters, facets, analyzers refined,
+> It searches with an algorithmic grace
+> And returns the knowledge humankind designed.
+>
+> So here's to Lucene, open, fast, and free—
+> A torch that lights the search for you and me.
