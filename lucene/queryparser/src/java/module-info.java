@@ -24,6 +24,7 @@ module org.apache.lucene.queryparser {
 
   exports org.apache.lucene.queryparser.charstream;
   exports org.apache.lucene.queryparser.classic;
+  exports org.apache.lucene.queryparser.combinedfield;
   exports org.apache.lucene.queryparser.complexPhrase;
   exports org.apache.lucene.queryparser.ext;
   exports org.apache.lucene.queryparser.flexible.core;
