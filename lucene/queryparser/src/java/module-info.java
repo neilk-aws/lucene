@@ -23,6 +23,7 @@ module org.apache.lucene.queryparser {
   requires org.apache.lucene.sandbox;
 
   exports org.apache.lucene.queryparser.charstream;
+  exports org.apache.lucene.queryparser.bm25f;
   exports org.apache.lucene.queryparser.classic;
   exports org.apache.lucene.queryparser.complexPhrase;
   exports org.apache.lucene.queryparser.ext;
