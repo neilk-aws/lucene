@@ -27,8 +27,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
@@ -1891,6 +1893,14 @@ public class TestHighlighter extends BaseTokenStreamTestCase implements Formatte
             + "</html>";
     // now an ugly built of XML parsing to test the snippet is encoded OK
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    try {
+      dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+    } catch (
+        @SuppressWarnings("unused")
+        ParserConfigurationException e) {
+      // ignore since all implementations are required to support the
+      // {@link javax.xml.XMLConstants#FEATURE_SECURE_PROCESSING} feature
+    }
     DocumentBuilder db = dbf.newDocumentBuilder();
     org.w3c.dom.Document doc =
         db.parse(new ByteArrayInputStream(xhtml.getBytes(StandardCharsets.UTF_8)));

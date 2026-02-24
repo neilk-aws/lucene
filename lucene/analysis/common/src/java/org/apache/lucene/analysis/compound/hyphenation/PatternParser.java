@@ -17,7 +17,9 @@
 package org.apache.lucene.analysis.compound.hyphenation;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -106,6 +108,12 @@ public class PatternParser extends DefaultHandler {
     try {
       SAXParserFactory factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
+      // Enable secure processing to protect against XXE attacks
+      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      // Disable external entities to prevent XXE attacks
+      // Note: We cannot disallow doctype declarations entirely since hyphenation files use DTD
+      factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       return factory.newSAXParser().getXMLReader();
     } catch (Exception e) {
       throw new RuntimeException("Couldn't create XMLReader: " + e.getMessage());
@@ -240,7 +248,9 @@ public class PatternParser extends DefaultHandler {
       // System.out.println(this.getClass().getResource("hyphenation.dtd").toExternalForm());
       return new InputSource(this.getClass().getResource("hyphenation.dtd").toExternalForm());
     }
-    return null;
+    // Return an empty InputSource to block resolution of unknown external entities
+    // This prevents XXE attacks by not allowing external entity resolution
+    return new InputSource(new StringReader(""));
   }
 
   //
