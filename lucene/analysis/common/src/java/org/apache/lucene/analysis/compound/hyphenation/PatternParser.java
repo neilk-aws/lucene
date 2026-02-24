@@ -18,10 +18,14 @@ package org.apache.lucene.analysis.compound.hyphenation;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -106,6 +110,16 @@ public class PatternParser extends DefaultHandler {
     try {
       SAXParserFactory factory = SAXParserFactory.newInstance();
       factory.setNamespaceAware(true);
+      try {
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      } catch (
+          @SuppressWarnings("unused")
+          SAXNotRecognizedException
+              | SAXNotSupportedException
+              | ParserConfigurationException e) {
+        // ignore since all implementations are required to support the
+        // {@link javax.xml.XMLConstants#FEATURE_SECURE_PROCESSING} feature
+      }
       return factory.newSAXParser().getXMLReader();
     } catch (Exception e) {
       throw new RuntimeException("Couldn't create XMLReader: " + e.getMessage());
