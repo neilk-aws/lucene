@@ -34,6 +34,9 @@ import java.util.List;
  */
 public interface SerializableObject {
 
+  /** Package prefix for allowed classes during deserialization */
+  String ALLOWED_PACKAGE_PREFIX = "org.apache.lucene.spatial3d.geom.";
+
   /**
    * Serialize to output stream.
    *
@@ -216,6 +219,11 @@ public interface SerializableObject {
       return StandardObjects.CODE_REGISTRY.get(index);
     } else {
       String className = readString(inputStream);
+      if (!className.startsWith(ALLOWED_PACKAGE_PREFIX)) {
+        throw new IOException(
+            "Security violation: cannot deserialize class from outside allowed package: "
+                + className);
+      }
       return Class.forName(className);
     }
   }
