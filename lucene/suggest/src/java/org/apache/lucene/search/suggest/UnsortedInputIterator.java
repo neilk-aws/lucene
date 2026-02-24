@@ -17,8 +17,8 @@
 package org.apache.lucene.search.suggest;
 
 import java.io.IOException;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 
@@ -41,7 +41,7 @@ public class UnsortedInputIterator extends BufferedInputIterator {
   public UnsortedInputIterator(InputIterator source) throws IOException {
     super(source);
     ords = new int[entries.size()];
-    Random random = new Random();
+    var random = ThreadLocalRandom.current();
     for (int i = 0; i < ords.length; i++) {
       ords[i] = i;
     }

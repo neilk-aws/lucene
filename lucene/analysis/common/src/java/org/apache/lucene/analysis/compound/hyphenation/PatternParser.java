@@ -18,6 +18,7 @@ package org.apache.lucene.analysis.compound.hyphenation;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -105,6 +106,9 @@ public class PatternParser extends DefaultHandler {
   static XMLReader createParser() {
     try {
       SAXParserFactory factory = SAXParserFactory.newInstance();
+      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+      factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
       factory.setNamespaceAware(true);
       return factory.newSAXParser().getXMLReader();
     } catch (Exception e) {
