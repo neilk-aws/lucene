@@ -202,6 +202,9 @@ public interface SerializableObject {
     }
   }
 
+  /** Allowed package prefix for non-standard deserialization classes */
+  static final String ALLOWED_PACKAGE_PREFIX = "org.apache.lucene.spatial3d.geom.";
+
   /**
    * Read the class from the stream
    *
@@ -216,7 +219,24 @@ public interface SerializableObject {
       return StandardObjects.CODE_REGISTRY.get(index);
     } else {
       String className = readString(inputStream);
-      return Class.forName(className);
+      // Validate the class name is within the allowed package to prevent arbitrary class loading
+      if (!className.startsWith(ALLOWED_PACKAGE_PREFIX)) {
+        throw new IOException(
+            "Untrusted class rejected during deserialization: "
+                + className
+                + ". Only classes in package "
+                + ALLOWED_PACKAGE_PREFIX
+                + " are allowed.");
+      }
+      Class<?> clazz = Class.forName(className);
+      // Verify the loaded class implements SerializableObject
+      if (!SerializableObject.class.isAssignableFrom(clazz)) {
+        throw new IOException(
+            "Class "
+                + className
+                + " does not implement SerializableObject and cannot be deserialized.");
+      }
+      return clazz;
     }
   }
 
