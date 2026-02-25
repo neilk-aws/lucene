@@ -18,6 +18,9 @@ package org.apache.lucene.analysis.compound.hyphenation;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Locale;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -104,8 +107,16 @@ public class PatternParser extends DefaultHandler {
    */
   static XMLReader createParser() {
     try {
-      SAXParserFactory factory = SAXParserFactory.newInstance();
+      SAXParserFactory factory = SAXParserFactory.newDefaultInstance();
       factory.setNamespaceAware(true);
+      try {
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      } catch (
+          @SuppressWarnings("unused")
+          ParserConfigurationException e) {
+        // ignore since all implementations are required to support the
+        // {@link javax.xml.XMLConstants#FEATURE_SECURE_PROCESSING} feature
+      }
       return factory.newSAXParser().getXMLReader();
     } catch (Exception e) {
       throw new RuntimeException("Couldn't create XMLReader: " + e.getMessage());
@@ -233,14 +244,20 @@ public class PatternParser extends DefaultHandler {
   // EntityResolver methods
   //
   @Override
-  public InputSource resolveEntity(String publicId, String systemId) {
+  public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
     // supply the internal hyphenation.dtd if possible
     if ((systemId != null && systemId.matches("(?i).*\\bhyphenation.dtd\\b.*"))
         || ("hyphenation-info".equals(publicId))) {
       // System.out.println(this.getClass().getResource("hyphenation.dtd").toExternalForm());
       return new InputSource(this.getClass().getResource("hyphenation.dtd").toExternalForm());
     }
-    return null;
+    // Block all other external entities to prevent XXE attacks
+    throw new SAXException(
+        String.format(
+            Locale.ENGLISH,
+            "External Entity resolving unsupported: publicId=\"%s\" systemId=\"%s\"",
+            publicId,
+            systemId));
   }
 
   //
