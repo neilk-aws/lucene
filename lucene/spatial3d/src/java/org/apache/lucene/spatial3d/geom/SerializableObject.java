@@ -216,7 +216,14 @@ public interface SerializableObject {
       return StandardObjects.CODE_REGISTRY.get(index);
     } else {
       String className = readString(inputStream);
-      return Class.forName(className);
+      if (!className.startsWith("org.apache.lucene.spatial3d.geom.")) {
+        throw new IOException("Unauthorized class for deserialization: " + className);
+      }
+      Class<?> clazz = Class.forName(className);
+      if (!SerializableObject.class.isAssignableFrom(clazz)) {
+        throw new IOException("Class does not implement SerializableObject: " + className);
+      }
+      return clazz;
     }
   }
 
