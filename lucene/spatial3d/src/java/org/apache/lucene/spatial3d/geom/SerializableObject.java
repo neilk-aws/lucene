@@ -216,6 +216,9 @@ public interface SerializableObject {
       return StandardObjects.CODE_REGISTRY.get(index);
     } else {
       String className = readString(inputStream);
+      if (!className.startsWith("org.apache.lucene.")) {
+        throw new IOException("Unauthorized class for deserialization: " + className);
+      }
       return Class.forName(className);
     }
   }

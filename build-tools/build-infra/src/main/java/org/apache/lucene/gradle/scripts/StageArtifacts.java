@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
@@ -327,6 +328,13 @@ public class StageArtifacts {
 
     static XmlElement parse(String xml) throws IOException {
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      try {
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+      } catch (ParserConfigurationException e) {
+        throw new RuntimeException(e);
+      }
       try (var is = new StringReader(xml)) {
         Document parse = dbf.newDocumentBuilder().parse(new InputSource(is));
         return new XmlElement(parse);

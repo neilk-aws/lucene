@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.lucene.analysis.Analyzer;
@@ -1891,6 +1892,7 @@ public class TestHighlighter extends BaseTokenStreamTestCase implements Formatte
             + "</html>";
     // now an ugly built of XML parsing to test the snippet is encoded OK
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+    dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
     DocumentBuilder db = dbf.newDocumentBuilder();
     org.w3c.dom.Document doc =
         db.parse(new ByteArrayInputStream(xhtml.getBytes(StandardCharsets.UTF_8)));
