@@ -161,6 +161,12 @@ public final class TestUtil {
       while ((entry = zipInput.getNextEntry()) != null) {
         Path targetFile = destDir.resolve(entry.getName());
 
+        // Zip Slip protection - ensure extracted path stays within destination
+        if (!targetFile.normalize().startsWith(destDir.normalize())) {
+          throw new IOException(
+              "Zip entry '" + entry.getName() + "' would escape the target directory");
+        }
+
         // be on the safe side: do not rely on that directories are always extracted
         // before their children (although this makes sense, but is it guaranteed?)
         Files.createDirectories(targetFile.getParent());
