@@ -202,6 +202,9 @@ public interface SerializableObject {
     }
   }
 
+  /** Allowed package prefix for deserialization of non-standard spatial3d classes. */
+  String ALLOWED_PACKAGE_PREFIX = "org.apache.lucene.spatial3d.geom.";
+
   /**
    * Read the class from the stream
    *
@@ -216,6 +219,12 @@ public interface SerializableObject {
       return StandardObjects.CODE_REGISTRY.get(index);
     } else {
       String className = readString(inputStream);
+      // Security: Only allow deserialization of spatial3d geometry classes to prevent
+      // arbitrary class instantiation attacks via malicious input streams
+      if (!className.startsWith(ALLOWED_PACKAGE_PREFIX)) {
+        throw new IOException(
+            "Refusing to deserialize class outside allowed package: " + className);
+      }
       return Class.forName(className);
     }
   }
