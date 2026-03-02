@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Verify that the existing build and tests for the queryparser module pass before making any changes. This confirms the baseline is green.",
+  "status": "completed",
+  "steps": [
+    "Set up JDK 25 environment: JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH",
+    "Run: cd /projects/sandbox/lucene && ./gradlew :lucene:queryparser:compileJava :lucene:queryparser:compileTestJava --no-daemon -q to confirm compilation works",
+    "Run: cd /projects/sandbox/lucene && ./gradlew -p lucene/queryparser test --tests TestSimpleQueryParser --no-daemon -q to verify the SimpleQueryParser test passes (this is the closest pattern to what we will build)"
+  ],
+  "acceptance_criteria": [
+    "Compilation of lucene:queryparser succeeds",
+    "TestSimpleQueryParser passes"
+  ],
+  "verification": [
+    "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew :lucene:queryparser:compileJava :lucene:queryparser:compileTestJava --no-daemon -q",
+    "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew -p lucene/queryparser test --tests TestSimpleQueryParser --no-daemon -q"
+  ],
+  "blocked_reason": null,
+  "findings": "Baseline verified successfully. JDK 25.0.2 works. Compilation of queryparser (main + test) passes. TestSimpleQueryParser passes. Gradle caches are warm. INTEGRATIONS_ONLY network is fine since no external downloads needed after initial cache."
+}

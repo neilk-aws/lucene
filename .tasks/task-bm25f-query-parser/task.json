@@ -1,0 +1,7 @@
+{
+  "task_id": "task-bm25f-query-parser",
+  "task_description": "Add a BM25F multifield query parser to the Lucene queryparser module. The parser uses CombinedFieldQuery (BM25F scoring) for term-level queries across multiple weighted fields, while falling back to standard per-field BooleanQuery disjunctions for phrases, prefix, and fuzzy queries.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

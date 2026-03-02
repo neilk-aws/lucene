@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Implement BM25FQueryParser - a multifield query parser that uses CombinedFieldQuery for BM25F scoring. This is modeled after SimpleQueryParser but generates CombinedFieldQuery instances for term-level queries instead of per-field TermQuery disjunctions. Phrases, prefix, and fuzzy queries fall back to standard per-field BooleanQuery disjunctions since CombinedFieldQuery only supports single terms. Also add comprehensive tests.",
+  "status": "pending",
+  "steps": [
+    "Create the BM25FQueryParser class at lucene/queryparser/src/java/org/apache/lucene/queryparser/bm25f/BM25FQueryParser.java. It should extend SimpleQueryParser (which itself extends QueryBuilder). The key changes are: (1) Override newDefaultQuery(String text) to analyze the text with the analyzer, and for each resulting single token, create a CombinedFieldQuery across all fields (with the configured weights), instead of a BooleanQuery of per-field TermQuerys. For multi-token text, combine individual CombinedFieldQuery instances into a BooleanQuery using the default operator. (2) The fields map uses Map<String, Float> where the Float values are the field weights. CombinedFieldQuery requires weights >= 1, so the constructor should validate this. (3) Override newPhraseQuery and newFuzzyQuery and newPrefixQuery - these should fall back to the superclass SimpleQueryParser behavior (BooleanQuery disjunction across fields) since CombinedFieldQuery does not support phrases, fuzzy, or prefix. (4) The class javadoc should explain the BM25F scoring semantics and when to use this parser vs SimpleQueryParser.",
+    "Create package-info.java at lucene/queryparser/src/java/org/apache/lucene/queryparser/bm25f/package-info.java with Apache license header and brief package description.",
+    "Add 'exports org.apache.lucene.queryparser.bm25f;' to lucene/queryparser/src/java/module-info.java.",
+    "Create TestBM25FQueryParser.java at lucene/queryparser/src/test/org/apache/lucene/queryparser/bm25f/TestBM25FQueryParser.java. Follow the pattern from TestSimpleQueryParser but verify: (a) Single term generates CombinedFieldQuery, (b) Multi-term query with AND operator generates BooleanQuery of CombinedFieldQuery clauses, (c) Phrase query generates BooleanQuery with per-field PhraseQuery (fallback), (d) Prefix generates per-field PrefixQuery (fallback), (e) Fuzzy generates per-field FuzzyQuery (fallback), (f) Field weights are correctly applied to CombinedFieldQuery, (g) Constructor rejects weights < 1.0. Additionally add a test that actually indexes documents and searches, confirming scoring correctness: index docs with content in two fields (e.g. title and body), search with BM25FQueryParser, and verify that results are returned with BM25F scoring (using a 'copy field' pattern like TestCombinedFieldQuery.testCopyField to verify score equivalence).",
+    "Run ./gradlew :lucene:queryparser:tidy --no-daemon to format the code."
+  ],
+  "acceptance_criteria": [
+    "BM25FQueryParser class exists and compiles",
+    "BM25FQueryParser.newDefaultQuery produces CombinedFieldQuery for single-token terms",
+    "BM25FQueryParser.newDefaultQuery produces BooleanQuery of CombinedFieldQuery clauses for multi-token terms",
+    "BM25FQueryParser.newPhraseQuery falls back to per-field BooleanQuery with PhraseQuery",
+    "BM25FQueryParser.newPrefixQuery falls back to per-field BooleanQuery with PrefixQuery",
+    "BM25FQueryParser.newFuzzyQuery falls back to per-field BooleanQuery with FuzzyQuery",
+    "Field weights < 1.0 are rejected by the constructor",
+    "module-info.java exports the bm25f package",
+    "All tests in TestBM25FQueryParser pass",
+    "All existing tests in TestSimpleQueryParser still pass",
+    "Code is formatted with ./gradlew tidy"
+  ],
+  "verification": [
+    "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew :lucene:queryparser:compileJava :lucene:queryparser:compileTestJava --no-daemon -q",
+    "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew -p lucene/queryparser test --tests TestBM25FQueryParser --no-daemon",
+    "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew -p lucene/queryparser test --tests TestSimpleQueryParser --no-daemon -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
