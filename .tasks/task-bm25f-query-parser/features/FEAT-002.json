@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Implement BM25FQueryParser - a multifield query parser that uses CombinedFieldQuery for BM25F scoring. This is modeled after SimpleQueryParser but generates CombinedFieldQuery instances for term-level queries instead of per-field TermQuery disjunctions. Phrases, prefix, and fuzzy queries fall back to standard per-field BooleanQuery disjunctions since CombinedFieldQuery only supports single terms. Also add comprehensive tests.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create the BM25FQueryParser class at lucene/queryparser/src/java/org/apache/lucene/queryparser/bm25f/BM25FQueryParser.java. It should extend SimpleQueryParser (which itself extends QueryBuilder). The key changes are: (1) Override newDefaultQuery(String text) to analyze the text with the analyzer, and for each resulting single token, create a CombinedFieldQuery across all fields (with the configured weights), instead of a BooleanQuery of per-field TermQuerys. For multi-token text, combine individual CombinedFieldQuery instances into a BooleanQuery using the default operator. (2) The fields map uses Map<String, Float> where the Float values are the field weights. CombinedFieldQuery requires weights >= 1, so the constructor should validate this. (3) Override newPhraseQuery and newFuzzyQuery and newPrefixQuery - these should fall back to the superclass SimpleQueryParser behavior (BooleanQuery disjunction across fields) since CombinedFieldQuery does not support phrases, fuzzy, or prefix. (4) The class javadoc should explain the BM25F scoring semantics and when to use this parser vs SimpleQueryParser.",
     "Create package-info.java at lucene/queryparser/src/java/org/apache/lucene/queryparser/bm25f/package-info.java with Apache license header and brief package description.",
@@ -29,5 +29,5 @@
     "cd /projects/sandbox/lucene && JAVA_HOME=$(mise where java@25) PATH=$(mise where java@25)/bin:$PATH ./gradlew -p lucene/queryparser test --tests TestSimpleQueryParser --no-daemon -q"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 10 tests pass. The integration test (testScoringWithIndex) requires explicit BM25Similarity on both IndexWriterConfig and IndexSearcher because the randomized test framework assigns random similarities (e.g., DFR) that are incompatible with CombinedFieldQuery. assertInstanceOf is not available in LuceneTestCase - use assertTrue(x instanceof Y) instead. Code was already properly formatted - tidy made no changes to the new files."
 }
