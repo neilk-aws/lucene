@@ -15,6 +15,10 @@
     limitations under the License.
 -->
 
+## Authors
+
+- miclanm
+
 # Apache Lucene
 
 ![Lucene Logo](https://lucene.apache.org/theme/images/lucene/lucene_logo_green_300.png?v=0e493d7a)
