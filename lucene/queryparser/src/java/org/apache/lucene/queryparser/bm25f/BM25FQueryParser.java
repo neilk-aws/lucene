@@ -18,11 +18,13 @@ package org.apache.lucene.queryparser.bm25f;
 
 import java.util.Map;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.simple.SimpleQueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.CombinedFieldQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.SynonymQuery;
 import org.apache.lucene.search.TermQuery;
 
 /**
@@ -37,6 +39,19 @@ import org.apache.lucene.search.TermQuery;
  * across all configured fields with per-field weights. For phrase, prefix, and fuzzy queries, the
  * parser falls back to the default {@link SimpleQueryParser} behavior (per-field queries with
  * boosts) since {@link CombinedFieldQuery} only supports single terms.
+ *
+ * <p><b>Shared-analyzer precondition:</b> All fields passed to this parser must share the same
+ * analyzer, or at minimum must produce the same tokenization behavior (same token stream). This is
+ * because {@link CombinedFieldQuery} combines term frequency across fields, which only produces
+ * meaningful BM25F scores when the same token stream is generated for all fields. The parser picks
+ * one field for analysis and applies the resulting tokens to all configured fields. If fields use
+ * different analyzers, the behavior is silently incorrect.
+ *
+ * <p><b>Per-term IDF model:</b> For multi-token queries, each term is wrapped in its own {@link
+ * CombinedFieldQuery} with independent IDF computation. These per-term queries are then combined
+ * via {@link BooleanQuery} using the configured default operator. This means that IDF is computed
+ * independently for each term rather than across the full term set, which may produce different
+ * rankings compared to a single multi-term query with unified IDF computation.
  *
  * <p>Usage example:
  *
@@ -93,6 +108,8 @@ public class BM25FQueryParser extends SimpleQueryParser {
    * Generates a {@link CombinedFieldQuery} for the given text. The text is analyzed using the
    * configured analyzer, and each resulting token is wrapped in a CombinedFieldQuery that spans all
    * configured fields with their weights. Multiple tokens are combined using the default operator.
+   * SynonymQuery instances produced by the analyzer are expanded into a disjunction of
+   * CombinedFieldQuery instances, one per synonym alternative.
    */
   @Override
   protected Query newDefaultQuery(String text) {
@@ -106,13 +123,17 @@ public class BM25FQueryParser extends SimpleQueryParser {
     }
     if (analyzed instanceof TermQuery tq) {
       return createCombinedFieldQuery(tq.getTerm().text());
+    } else if (analyzed instanceof SynonymQuery sq) {
+      return expandSynonymQuery(sq);
     } else if (analyzed instanceof BooleanQuery bq) {
       BooleanQuery.Builder builder = new BooleanQuery.Builder();
       for (BooleanClause clause : bq) {
         if (clause.query() instanceof TermQuery tq) {
           builder.add(createCombinedFieldQuery(tq.getTerm().text()), clause.occur());
+        } else if (clause.query() instanceof SynonymQuery sq) {
+          builder.add(expandSynonymQuery(sq), clause.occur());
         } else {
-          // For anything else (SynonymQuery, etc.), keep as-is
+          // For anything else, keep as-is
           builder.add(clause);
         }
       }
@@ -130,6 +151,20 @@ public class BM25FQueryParser extends SimpleQueryParser {
     CombinedFieldQuery.Builder builder = new CombinedFieldQuery.Builder(termText);
     for (Map.Entry<String, Float> entry : weights.entrySet()) {
       builder.addField(entry.getKey(), entry.getValue());
+    }
+    return builder.build();
+  }
+
+  /**
+   * Expands a {@link SynonymQuery} into a {@link BooleanQuery} (SHOULD) of {@link
+   * CombinedFieldQuery} instances, one per synonym alternative. This ensures that synonym
+   * alternatives receive multi-field BM25F scoring across all configured fields rather than being
+   * scoped to a single field.
+   */
+  private Query expandSynonymQuery(SynonymQuery sq) {
+    BooleanQuery.Builder builder = new BooleanQuery.Builder();
+    for (Term term : sq.getTerms()) {
+      builder.add(createCombinedFieldQuery(term.text()), BooleanClause.Occur.SHOULD);
     }
     return builder.build();
   }
